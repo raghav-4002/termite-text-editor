@@ -116,7 +116,11 @@ draw_tildes(void)
     int y;
 
     for(y = 0; y < attributes.rows; y++) {
-        write(STDOUT_FILENO, "~\r\n", 3);
+        write(STDOUT_FILENO, "~", 1);
+
+        if(y < attributes.rows - 1) {
+            write(STDOUT_FILENO, "\r\n", 2);
+        }
     }
 }
 
