@@ -32,7 +32,7 @@ void get_window_size(void);
 void write_buffer(struct abuf *ab, const char *s, int len);
 void free_buffer(struct abuf *ab);
 void refresh_screen(void);
-void draw_tildes(void);
+void draw_tildes(struct abuf *ab);
 void process_input(void);
 char read_input(void);
 
@@ -130,27 +130,32 @@ free_buffer(struct abuf *ab)
 void
 refresh_screen(void)
 {
+    struct abuf ab;
+
     /* clear screen */
-    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write_buffer(&ab, "\x1b[2J", 4);
     /* repostion cursor to the top */
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    write_buffer(&ab, "\x1b[H", 3);
 
-    draw_tildes();
+    draw_tildes(&ab);
 
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    write_buffer(&ab, "\x1b[H", 3);
+    write(STDOUT_FILENO, ab.s, ab.len);
+
+    free(ab.s);
 }
 
 
 void
-draw_tildes(void)
+draw_tildes(struct abuf *ab)
 {
     int y;
 
     for(y = 0; y < attributes.rows; y++) {
-        write(STDOUT_FILENO, "~", 1);
+        write_buffer(ab, "~", 1);
 
         if(y < attributes.rows - 1) {
-            write(STDOUT_FILENO, "\r\n", 2);
+            write_buffer(ab, "\r\n", 2);
         }
     }
 }
