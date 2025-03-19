@@ -1,4 +1,4 @@
-flags = -Wpedantic -Wall -Wextra -std=c99
+flags = -Wpedantic -Wall -Wextra -std=c99 -Werror
 
 
 main: main.c

@@ -130,7 +130,7 @@ free_buffer(struct abuf *ab)
 void
 refresh_screen(void)
 {
-    struct abuf ab;
+    struct abuf ab = ABUF_INIT;
 
     /* clear screen */
     write_buffer(&ab, "\x1b[2J", 4);
