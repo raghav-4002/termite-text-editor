@@ -1,4 +1,3 @@
-#include <asm-generic/ioctls.h>
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -9,8 +8,12 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 
-struct termios orig_termios;
-int rows, cols;
+struct term_attributes {
+    struct termios orig_termios;
+    int rows, cols;
+};
+
+struct term_attributes attributes;
 
 
 void die(const char *s);
@@ -55,10 +58,10 @@ void
 enable_raw_mode(void)
 {
     /* get terminal attributes */
-    if(tcgetattr(STDIN_FILENO, &orig_termios) == -1) die("tcgetattr");
+    if(tcgetattr(STDIN_FILENO, &attributes.orig_termios) == -1) die("tcgetattr");
     atexit(disable_raw_mode);
 
-    struct termios raw = orig_termios;
+    struct termios raw = attributes.orig_termios;
 
     /* enable raw mode */
     raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN | CS8);
@@ -76,7 +79,7 @@ void
 disable_raw_mode(void)
 {
     /* restore original terminal attributes */
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &attributes.orig_termios) == -1)
         die("tcsetattr");
 }
 
@@ -88,8 +91,8 @@ get_window_size(void)
 
     if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1) die("ioctl");
 
-    rows = ws.ws_row;
-    cols = ws.ws_col;    
+    attributes.rows = ws.ws_row;
+    attributes.cols = ws.ws_col;    
 }
 
 
@@ -112,7 +115,7 @@ draw_tildes(void)
 {
     int y;
 
-    for(y = 0; y < rows; y++) {
+    for(y = 0; y < attributes.rows; y++) {
         write(STDOUT_FILENO, "~\r\n", 3);
     }
 }
