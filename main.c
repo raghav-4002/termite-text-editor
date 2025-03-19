@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <string.h>
 
 
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -16,10 +17,20 @@ struct term_attributes {
 struct term_attributes attributes;
 
 
+struct abuf {
+    char *s;
+    int len;
+};
+
+#define ABUF_INIT {NULL, 0}
+
+
 void die(const char *s);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
 void get_window_size(void);
+void write_buffer(struct abuf *ab, const char *s, int len);
+void free_buffer(struct abuf *ab);
 void refresh_screen(void);
 void draw_tildes(void);
 void process_input(void);
@@ -93,6 +104,26 @@ get_window_size(void)
 
     attributes.rows = ws.ws_row;
     attributes.cols = ws.ws_col;    
+}
+
+
+void
+write_buffer(struct abuf *ab, const char *s, int len)
+{
+    char *new = realloc(ab->s, ab->len + len);
+    if(new == NULL) die("realloc");
+
+    memcpy(&new[ab->len], s, len);
+
+    ab->s = new;
+    ab->len = ab->len + len;
+}
+
+
+void
+free_buffer(struct abuf *ab)
+{
+    free(ab->s);
 }
 
 
