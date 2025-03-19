@@ -1,6 +1,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -9,10 +10,11 @@
 struct termios orig_termios;
 
 
+void die(const char *s);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
-char read_input(void);
 void process_input(void);
+char read_input(void);
 
 
 int
@@ -29,10 +31,18 @@ main(void)
 
 
 void
+die(const char *s)
+{
+    perror(s);
+    exit(1);
+}
+
+
+void
 enable_raw_mode(void)
 {
     /* get terminal attributes */
-    tcgetattr(STDIN_FILENO, &orig_termios);
+    if(tcgetattr(STDIN_FILENO, &orig_termios) == -1) die("tcgetattr");
     atexit(disable_raw_mode);
 
     struct termios raw = orig_termios;
@@ -44,7 +54,8 @@ enable_raw_mode(void)
 	raw.c_cflag |= (CS8);
 
     /* set new terminal attributes */
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+        die("tcsetattr");
 }
 
 
@@ -52,14 +63,17 @@ void
 disable_raw_mode(void)
 {
     /* restore original terminal attributes */
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+        die("tcsetattr");
 }
 
 
 void
 process_input(void)
 {
-    char ch = read_input();
+    char ch;
+
+    if((ch = read_input()) == -1) die("read_input");
 
     if(ch == CTRL_KEY('q')) exit(0);
 
@@ -72,7 +86,9 @@ read_input(void)
     char ch;
 
     /* read 1 byte from standard input file descriptor */
-    read(STDIN_FILENO, &ch, 1);
+    if(read(STDIN_FILENO, &ch, 1) == -1) {
+        return -1;
+    }
 
     return ch;
 }
