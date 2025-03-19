@@ -1,18 +1,22 @@
+#include <asm-generic/ioctls.h>
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 
 struct termios orig_termios;
+int rows, cols;
 
 
 void die(const char *s);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
+void get_window_size(void);
 void refresh_screen(void);
 void draw_tildes(void);
 void process_input(void);
@@ -23,6 +27,7 @@ int
 main(void)
 {
     enable_raw_mode();
+    get_window_size();
 
     while(1) {
         refresh_screen();
@@ -36,6 +41,11 @@ main(void)
 void
 die(const char *s)
 {
+    /* clear screen */
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    /* reposition cursor to top */
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
     perror(s);
     exit(1);
 }
@@ -72,6 +82,18 @@ disable_raw_mode(void)
 
 
 void
+get_window_size(void)
+{
+    struct winsize ws;
+
+    if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1) die("ioctl");
+
+    rows = ws.ws_row;
+    cols = ws.ws_col;    
+}
+
+
+void
 refresh_screen(void)
 {
     /* clear screen */
@@ -90,7 +112,7 @@ draw_tildes(void)
 {
     int y;
 
-    for(y = 0; y < 24; y++) {
+    for(y = 0; y < rows; y++) {
         write(STDOUT_FILENO, "~\r\n", 3);
     }
 }
@@ -103,7 +125,14 @@ process_input(void)
 
     if((ch = read_input()) == -1) die("read_input");
 
-    if(ch == CTRL_KEY('q')) exit(0);
+    switch(ch) {
+        case CTRL_KEY('q'):
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            write(STDOUT_FILENO, "\x1b[H", 3);
+
+            exit(0);
+            break;
+    }
 
 }
 
