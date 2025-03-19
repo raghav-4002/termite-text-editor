@@ -13,6 +13,8 @@ struct termios orig_termios;
 void die(const char *s);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
+void refresh_screen(void);
+void draw_tildes(void);
 void process_input(void);
 char read_input(void);
 
@@ -23,6 +25,7 @@ main(void)
     enable_raw_mode();
 
     while(1) {
+        refresh_screen();
         process_input();
     }
 
@@ -65,6 +68,31 @@ disable_raw_mode(void)
     /* restore original terminal attributes */
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
         die("tcsetattr");
+}
+
+
+void
+refresh_screen(void)
+{
+    /* clear screen */
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    /* repostion cursor to the top */
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    draw_tildes();
+
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
+
+void
+draw_tildes(void)
+{
+    int y;
+
+    for(y = 0; y < 24; y++) {
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
 }
 
 
