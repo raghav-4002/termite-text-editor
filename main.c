@@ -8,7 +8,7 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-#define WELCOME_MSG "Text Editor"
+#define WELCOME_MSG "PlaceHolder"
 
 
 struct term_attributes {
@@ -180,6 +180,30 @@ draw_tildes(struct abuf *ab)
             }
 
             write_buffer(ab, welcome, welcome_len);
+        } else if(y == (attributes.rows / 3) + 1) {
+            char welcome[60];
+
+            int welcome_len = snprintf(welcome, sizeof(welcome),
+                                "A text editor written in C");
+
+            if(welcome_len > attributes.cols) {
+                welcome_len = attributes.cols;
+            }
+
+            int padding = (attributes.cols - welcome_len) / 2;
+            
+            if(padding != 0) {
+                write_buffer(ab, "~", 1);
+                padding--;
+            }
+
+            while(padding != 0) {
+                write_buffer(ab, " ", 1);
+                padding--;
+            }
+
+            write_buffer(ab, welcome, welcome_len);
+            
         } else {
             write_buffer(ab, "~", 1);
         }
