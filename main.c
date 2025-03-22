@@ -8,6 +8,8 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
+#define WELCOME_MSG "Text Editor"
+
 
 struct term_attributes {
     struct termios orig_termios;
@@ -155,9 +157,21 @@ draw_tildes(struct abuf *ab)
     int y;
 
     for(y = 0; y < attributes.rows; y++) {
-        write_buffer(ab, "~", 1);
+        if(y == attributes.rows / 3) {
+            char welcome[60];
 
-        /* clear line */
+            int welcome_len = snprintf(welcome, sizeof(welcome),
+                                "%s", WELCOME_MSG);
+            
+            if(welcome_len > attributes.cols) {
+                welcome_len = attributes.cols;
+            }
+
+            write_buffer(ab, welcome, welcome_len);
+        } else {
+            write_buffer(ab, "~", 1);
+        }
+
         write_buffer(ab, "\x1b[K", 3);
 
         if(y < attributes.rows - 1) {
