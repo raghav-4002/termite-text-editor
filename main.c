@@ -134,8 +134,6 @@ refresh_screen(void)
 
     /* hide cursor */
     write_buffer(&ab, "\x1b[?25l", 6);
-    /* clear screen */
-    write_buffer(&ab, "\x1b[2J", 4);
     /* repostion cursor to the top */
     write_buffer(&ab, "\x1b[H", 3);
 
@@ -158,6 +156,9 @@ draw_tildes(struct abuf *ab)
 
     for(y = 0; y < attributes.rows; y++) {
         write_buffer(ab, "~", 1);
+
+        /* clear line */
+        write_buffer(ab, "\x1b[K", 3);
 
         if(y < attributes.rows - 1) {
             write_buffer(ab, "\r\n", 2);
