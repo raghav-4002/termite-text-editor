@@ -132,6 +132,8 @@ refresh_screen(void)
 {
     struct abuf ab = ABUF_INIT;
 
+    /* hide cursor */
+    write_buffer(&ab, "\x1b[?25l", 6);
     /* clear screen */
     write_buffer(&ab, "\x1b[2J", 4);
     /* repostion cursor to the top */
@@ -140,6 +142,9 @@ refresh_screen(void)
     draw_tildes(&ab);
 
     write_buffer(&ab, "\x1b[H", 3);
+    /* unhide the cursor */
+    write_buffer(&ab, "\x1b[?25h", 6);
+
     write(STDOUT_FILENO, ab.s, ab.len);
 
     free(ab.s);
