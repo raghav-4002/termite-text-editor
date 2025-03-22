@@ -167,6 +167,18 @@ draw_tildes(struct abuf *ab)
                 welcome_len = attributes.cols;
             }
 
+            int padding = (attributes.cols - welcome_len) / 2;
+
+            if(padding != 0) {
+                write_buffer(ab, "~", 1);
+                padding--;
+            }
+
+            while(padding != 0) {
+                write_buffer(ab, " ", 1);
+                padding--;
+            }
+
             write_buffer(ab, welcome, welcome_len);
         } else {
             write_buffer(ab, "~", 1);
