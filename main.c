@@ -34,7 +34,7 @@ void get_window_size(void);
 void write_buffer(struct abuf *ab, const char *s, int len);
 void free_buffer(struct abuf *ab);
 void refresh_screen(void);
-void draw_tildes(struct abuf *ab);
+void draw_rows(struct abuf *ab);
 void process_input(void);
 char read_input(void);
 
@@ -139,7 +139,7 @@ refresh_screen(void)
     /* repostion cursor to the top */
     write_buffer(&ab, "\x1b[H", 3);
 
-    draw_tildes(&ab);
+    draw_rows(&ab);
 
     write_buffer(&ab, "\x1b[H", 3);
     /* unhide the cursor */
@@ -152,7 +152,7 @@ refresh_screen(void)
 
 
 void
-draw_tildes(struct abuf *ab)
+draw_rows(struct abuf *ab)
 {
     int y;
 
