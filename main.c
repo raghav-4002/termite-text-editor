@@ -172,11 +172,30 @@ char
 read_input(void)
 {
     char ch;
+    int nread;
 
     /* read 1 byte from standard input file descriptor */
-    if(read(STDIN_FILENO, &ch, 1) == -1) {
-        return -1;
+    while((nread = read(STDIN_FILENO, &ch , 1)) != 1) {
+        if(nread == -1) return -1;
     }
+
+    if(ch == '\x1b') {
+        char seq[3];
+
+        if(read(STDIN_FILENO, &seq[0], 1) == -1) return '\x1b';
+        if(read(STDIN_FILENO, &seq[1], 1) == -1) return '\x1b';
+
+        if(seq[0] == '[') {
+            switch(seq[1]) {
+                case 'A': return 'w';
+                case 'B': return 's';
+                case 'C': return 'd';
+                case 'D': return 'a';
+            }
+        }
+
+        return '\x1b';
+    } 
 
     return ch;
 }
@@ -239,6 +258,8 @@ enable_raw_mode(void)
 	raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
 	raw.c_oflag &= ~(OPOST);
 	raw.c_cflag |= (CS8);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
 
     /* set new terminal attributes */
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
