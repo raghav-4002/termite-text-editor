@@ -8,6 +8,11 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
+#define ARROW_UP 1000
+#define ARROW_DOWN 1001
+#define ARROW_RIGHT 1002
+#define ARROW_LEFT 1003
+
 #define WELCOME_MSG "PlaceHolder"
 
 
@@ -33,8 +38,8 @@ void get_window_size(void);
 void refresh_screen(void);
 void draw_rows(struct abuf *ab);
 void process_input(void);
-char read_input(void);
-void move_cursor(char ch);
+int read_input(void);
+void move_cursor(int ch);
 void append_buffer(struct abuf *ab, const char *s, int len);
 void free_buffer(struct abuf *ab);
 void enable_raw_mode(void);
@@ -148,7 +153,7 @@ draw_rows(struct abuf *ab)
 void
 process_input(void)
 {
-    char ch;
+    int ch;
 
     if((ch = read_input()) == -1) die("read_input");
 
@@ -160,7 +165,7 @@ process_input(void)
             exit(0);
             break;
 
-        case 'w': case 's': case 'a': case 'd':
+        case ARROW_UP: case ARROW_DOWN: case ARROW_RIGHT: case ARROW_LEFT:
             move_cursor(ch);
             break;
     }
@@ -168,7 +173,7 @@ process_input(void)
 }
 
 
-char
+int
 read_input(void)
 {
     char ch[4] = {0};   /* initialized with 0 to solve a particular bug */
@@ -177,10 +182,10 @@ read_input(void)
 
     if(ch[0] == '\x1b' && ch[1] == '[') {
         switch(ch[2]) {
-            case 'A': return 'w';
-            case 'B': return 's';
-            case 'C': return 'd';
-            case 'D': return 'a';
+            case 'A': return ARROW_UP;
+            case 'B': return ARROW_DOWN;
+            case 'C': return ARROW_RIGHT;
+            case 'D': return ARROW_LEFT;
         }
     }
 
@@ -189,22 +194,22 @@ read_input(void)
 
 
 void
-move_cursor(char ch)
+move_cursor(int ch)
 {
     switch(ch) {
-        case 'w':
+        case ARROW_UP:
             attributes.cy--;
             break;
 
-        case 's':
+        case ARROW_DOWN:
             attributes.cy++;
             break;
 
-        case 'a':
+        case ARROW_LEFT:
             attributes.cx--;
             break;
 
-        case 'd':
+        case ARROW_RIGHT:
             attributes.cx++;
             break;
     }
