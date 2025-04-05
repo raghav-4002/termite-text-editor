@@ -35,7 +35,7 @@ void draw_rows(struct abuf *ab);
 void process_input(void);
 char read_input(void);
 void move_cursor(char ch);
-void write_buffer(struct abuf *ab, const char *s, int len);
+void append_buffer(struct abuf *ab, const char *s, int len);
 void free_buffer(struct abuf *ab);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
@@ -83,19 +83,19 @@ refresh_screen(void)
     struct abuf ab = ABUF_INIT;
 
     /* hide cursor */
-    write_buffer(&ab, "\x1b[?25l", 6);
+    append_buffer(&ab, "\x1b[?25l", 6);
     /* repostion cursor to the top */
-    write_buffer(&ab, "\x1b[H", 3);
+    append_buffer(&ab, "\x1b[H", 3);
 
     draw_rows(&ab);
 
     /* reposition cursor */
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", attributes.cy + 1, attributes.cx + 1);
-    write_buffer(&ab, buf, strlen(buf));
+    append_buffer(&ab, buf, strlen(buf));
 
     /* unhide the cursor */
-    write_buffer(&ab, "\x1b[?25h", 6);
+    append_buffer(&ab, "\x1b[?25h", 6);
 
     write(STDOUT_FILENO, ab.s, ab.len);
 
@@ -122,24 +122,24 @@ draw_rows(struct abuf *ab)
             int padding = (attributes.cols - welcome_len) / 2;
 
             if(padding != 0) {
-                write_buffer(ab, "~", 1);
+                append_buffer(ab, "~", 1);
                 padding--;
             }
 
             while(padding != 0) {
-                write_buffer(ab, " ", 1);
+                append_buffer(ab, " ", 1);
                 padding--;
             }
 
-            write_buffer(ab, welcome, welcome_len);
+            append_buffer(ab, welcome, welcome_len);
         } else {
-            write_buffer(ab, "~", 1);
+            append_buffer(ab, "~", 1);
         }
 
-        write_buffer(ab, "\x1b[K", 3);
+        append_buffer(ab, "\x1b[K", 3);
 
         if(y < attributes.rows - 1) {
-            write_buffer(ab, "\r\n", 2);
+            append_buffer(ab, "\r\n", 2);
         }
     }
 }
@@ -153,7 +153,7 @@ process_input(void)
     if((ch = read_input()) == -1) die("read_input");
 
     switch(ch) {
-        case CTRL_KEY('q'):
+        case CTRL_KEY('q'): case '\x1b':
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
 
@@ -171,33 +171,20 @@ process_input(void)
 char
 read_input(void)
 {
-    char ch;
-    int nread;
+    char ch[4] = {0};   /* initialized with 0 to solve a particular bug */
 
-    /* read 1 byte from standard input file descriptor */
-    while((nread = read(STDIN_FILENO, &ch , 1)) != 1) {
-        if(nread == -1) return -1;
+    read(STDIN_FILENO, ch, 4);
+
+    if(ch[0] == '\x1b' && ch[1] == '[') {
+        switch(ch[2]) {
+            case 'A': return 'w';
+            case 'B': return 's';
+            case 'C': return 'd';
+            case 'D': return 'a';
+        }
     }
 
-    if(ch == '\x1b') {
-        char seq[3];
-
-        if(read(STDIN_FILENO, &seq[0], 1) == -1) return '\x1b';
-        if(read(STDIN_FILENO, &seq[1], 1) == -1) return '\x1b';
-
-        if(seq[0] == '[') {
-            switch(seq[1]) {
-                case 'A': return 'w';
-                case 'B': return 's';
-                case 'C': return 'd';
-                case 'D': return 'a';
-            }
-        }
-
-        return '\x1b';
-    } 
-
-    return ch;
+    return ch[0];
 }
 
 
@@ -225,7 +212,7 @@ move_cursor(char ch)
 
 
 void
-write_buffer(struct abuf *ab, const char *s, int len)
+append_buffer(struct abuf *ab, const char *s, int len)
 {
     char *new = realloc(ab->s, ab->len + len);
     if(new == NULL) die("realloc");
@@ -258,10 +245,8 @@ enable_raw_mode(void)
 	raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
 	raw.c_oflag &= ~(OPOST);
 	raw.c_cflag |= (CS8);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 1;
 
-    /* set new terminal attributes */
+    /* set the updated terminal attributes */
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
         die("tcsetattr");
 }
