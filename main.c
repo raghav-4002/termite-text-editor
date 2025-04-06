@@ -198,18 +198,22 @@ move_cursor(int ch)
 {
     switch(ch) {
         case ARROW_UP:
+            if(attributes.cy == 0) break;
             attributes.cy--;
             break;
 
         case ARROW_DOWN:
+            if(attributes.cy == attributes.rows - 1) break;
             attributes.cy++;
             break;
 
         case ARROW_LEFT:
+            if(attributes.cx == 0) break;
             attributes.cx--;
             break;
 
         case ARROW_RIGHT:
+            if(attributes.cx == attributes.cols - 1) break;
             attributes.cx++;
             break;
     }
