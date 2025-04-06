@@ -19,9 +19,9 @@ enum editor_key {
 
 
 struct editor_attributes{
-    int cx, cy;     // cursor position
+    int cx, cy;
     int rows, cols;
-    struct termios orig_termios;
+    struct termios orig_termios; 
 };
 
 struct editor_attributes attributes;
@@ -116,6 +116,7 @@ draw_rows(struct abuf *ab)
     int y;
 
     for(y = 0; y < attributes.rows; y++) {
+        /* this section centres the welcome message to be printed */
         if(y == attributes.rows / 3) {
             char welcome[60];
 
@@ -182,6 +183,7 @@ read_input(void)
 
     read(STDIN_FILENO, ch, 4);
 
+    /* handle escape key and arrow keys */
     if(ch[0] == '\x1b' && ch[1] == '[') {
         switch(ch[2]) {
             case 'A': return ARROW_UP;
@@ -246,10 +248,15 @@ free_buffer(struct abuf *ab)
 }
 
 
+/*
+ * This function disables cannonical terminal mode of input. By default, terminal emulators are designed to only accept
+   data if 'enter' key is pressed.
+ * To make a text editor, we need to disable this feature so that we can have more finer control over the terminal
+ */
 void
 enable_raw_mode(void)
 {
-    /* get terminal attributes */
+    /* get current terminal attributes */
     if(tcgetattr(STDIN_FILENO, &attributes.orig_termios) == -1) die("tcgetattr");
     atexit(disable_raw_mode);
 
@@ -260,6 +267,7 @@ enable_raw_mode(void)
 	raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
 	raw.c_oflag &= ~(OPOST);
 	raw.c_cflag |= (CS8);
+
 
     /* set the updated terminal attributes */
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
@@ -284,6 +292,6 @@ die(const char *s)
     /* reposition cursor to top */
     write(STDOUT_FILENO, "\x1b[H", 3);
 
-    perror(s);
+    perror(s);  /* prints the error msg */
     exit(1);
 }
