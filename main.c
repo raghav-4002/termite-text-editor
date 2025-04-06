@@ -8,10 +8,12 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-#define ARROW_UP 1000
-#define ARROW_DOWN 1001
-#define ARROW_RIGHT 1002
-#define ARROW_LEFT 1003
+enum editor_key {
+    ARROW_UP = 1000,
+    ARROW_DOWN,
+    ARROW_LEFT,
+    ARROW_RIGHT
+};
 
 #define WELCOME_MSG "PlaceHolder"
 
