@@ -25,7 +25,7 @@ typedef struct erow {
 
 struct editor_attributes{
     int cx, cy;
-    int rows, cols;
+    int screenrows, screencols;
     int numrows;
     erow row;
     struct termios orig_termios; 
@@ -89,8 +89,8 @@ get_window_size(void)
 
     if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1) die("ioctl");
 
-    attributes.rows = ws.ws_row;
-    attributes.cols = ws.ws_col;    
+    attributes.screenrows = ws.ws_row;
+    attributes.screencols = ws.ws_col;    
 }
 
 
@@ -140,38 +140,44 @@ draw_rows(struct abuf *ab)
 {
     int y;
 
-    for(y = 0; y < attributes.rows; y++) {
-        /* this section centres the welcome message to be printed */
-        if(y == attributes.rows / 3) {
-            char welcome[60];
+    for(y = 0; y < attributes.screenrows; y++) {
+        if(y >= attributes.numrows) {
+            /* this section centres the welcome message to be printed */
+            if(y == attributes.screenrows / 3) {
+                char welcome[60];
 
-            int welcome_len = snprintf(welcome, sizeof(welcome),
-                                "%s -- A text editor written in C", WELCOME_MSG);
-            
-            if(welcome_len > attributes.cols) {
-                welcome_len = attributes.cols;
-            }
+                int welcome_len = snprintf(welcome, sizeof(welcome),
+                                    "%s -- A text editor written in C", WELCOME_MSG);
+                
+                if(welcome_len > attributes.screencols) {
+                    welcome_len = attributes.screencols;
+                }
 
-            int padding = (attributes.cols - welcome_len) / 2;
+                int padding = (attributes.screencols - welcome_len) / 2;
 
-            if(padding != 0) {
+                if(padding != 0) {
+                    append_buffer(ab, "~", 1);
+                    padding--;
+                }
+
+                while(padding != 0) {
+                    append_buffer(ab, " ", 1);
+                    padding--;
+                }
+
+                append_buffer(ab, welcome, welcome_len);
+            } else {
                 append_buffer(ab, "~", 1);
-                padding--;
             }
-
-            while(padding != 0) {
-                append_buffer(ab, " ", 1);
-                padding--;
-            }
-
-            append_buffer(ab, welcome, welcome_len);
         } else {
-            append_buffer(ab, "~", 1);
+            int len = attributes.row.size;
+            if(len > attributes.screencols) len = attributes.screencols;
+            append_buffer(ab, attributes.row.chars, len);
         }
 
         append_buffer(ab, "\x1b[K", 3);
 
-        if(y < attributes.rows - 1) {
+        if(y < attributes.screenrows - 1) {
             append_buffer(ab, "\r\n", 2);
         }
     }
@@ -233,7 +239,7 @@ move_cursor(int ch)
             break;
 
         case ARROW_DOWN:
-            if(attributes.cy != attributes.rows - 1) {
+            if(attributes.cy != attributes.screenrows - 1) {
                 attributes.cy++;
             }
             break;
@@ -245,7 +251,7 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx != attributes.cols - 1) {
+            if(attributes.cx != attributes.screencols - 1) {
                 attributes.cx++;
             }
             break;
