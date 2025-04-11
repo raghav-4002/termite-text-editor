@@ -44,7 +44,7 @@ struct abuf {
 
 void init_editor(void);
 void get_window_size(void);
-void editor_open(void);
+void editor_open(const char *filename);
 void refresh_screen(void);
 void draw_rows(struct abuf *ab);
 void process_input(void);
@@ -62,7 +62,7 @@ main(void)
 {
     enable_raw_mode();
     init_editor();
-    editor_open();
+    editor_open("test.txt");
 
     while(1) {
         refresh_screen();
@@ -95,17 +95,32 @@ get_window_size(void)
 
 
 void
-editor_open(void)
+editor_open(const char *filename)
 {
-    char *line = "Hello!";
-    ssize_t line_len = 6;
+    FILE *fptr = fopen(filename, "r");
+    if(fptr == NULL) die("fopen");
 
-    attributes.row.size = line_len;
-    attributes.row.chars = malloc(line_len + 1);
-    memcpy(attributes.row.chars, line, line_len);
+    char *line_ptr = NULL;
+    size_t n = 0;
+    ssize_t line_len;
+    
+    line_len = getline(&line_ptr, &n, fptr);
 
-    attributes.row.chars[line_len] = '\0';
-    attributes.numrows = 1;
+    if(line_len != -1) {
+        while(line_len > 0 && (line_ptr[line_len - 1] == '\n' ||
+                        line_ptr[line_len - 1] == '\r'))
+            line_len--;
+
+        attributes.row.size = line_len;
+        attributes.row.chars = malloc(line_len);
+        memcpy(attributes.row.chars, line_ptr, line_len);
+
+        attributes.row.chars[line_len] = '\0';
+
+        attributes.numrows = 1;
+    }
+    free(line_ptr);
+    fclose(fptr);
 }
 
 
