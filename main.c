@@ -18,9 +18,16 @@ enum editor_key {
 #define WELCOME_MSG "PlaceHolder"
 
 
+typedef struct erow {
+    int size;
+    char *chars;
+} erow;
+
 struct editor_attributes{
     int cx, cy;
     int rows, cols;
+    int numrows;
+    erow row;
     struct termios orig_termios; 
 };
 
@@ -37,6 +44,7 @@ struct abuf {
 
 void init_editor(void);
 void get_window_size(void);
+void editor_open(void);
 void refresh_screen(void);
 void draw_rows(struct abuf *ab);
 void process_input(void);
@@ -54,6 +62,7 @@ main(void)
 {
     enable_raw_mode();
     init_editor();
+    editor_open();
 
     while(1) {
         refresh_screen();
@@ -68,6 +77,7 @@ void
 init_editor(void)
 {
     attributes.cx = 0, attributes.cy = 0; // set cursor position to top left
+    attributes.numrows = 0;
     get_window_size();
 }
 
@@ -81,6 +91,21 @@ get_window_size(void)
 
     attributes.rows = ws.ws_row;
     attributes.cols = ws.ws_col;    
+}
+
+
+void
+editor_open(void)
+{
+    char *line = "Hello!";
+    ssize_t line_len = 6;
+
+    attributes.row.size = line_len;
+    attributes.row.chars = malloc(line_len + 1);
+    memcpy(attributes.row.chars, line, line_len);
+
+    attributes.row.chars[line_len] = '\0';
+    attributes.numrows = 1;
 }
 
 
