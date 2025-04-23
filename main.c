@@ -107,8 +107,8 @@ editor_open(const char *filename)
     line_len = getline(&line_ptr, &n, fptr);
 
     if(line_len != -1) {
-        while(line_len > 0 && (line_ptr[line_len - 1] == '\n' ||
-                        line_ptr[line_len - 1] == '\r'))
+        while((line_ptr[line_len - 1] == '\n') ||
+              (line_ptr[line_len - 1] == '\r'))
             line_len--;
 
         attributes.row.size = line_len;
@@ -316,7 +316,7 @@ enable_raw_mode(void)
 
 
     /* set the updated terminal attributes */
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    if(tcsetattr(STDIN_FILENO, TCSANOW, &raw) == -1)
         die("tcsetattr");
 }
 
