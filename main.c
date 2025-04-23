@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <errno.h>
 
 
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -32,7 +33,7 @@ struct editor_attributes{
     int cx, cy;
     int screenrows, screencols;
     int numrows; // stores the total number of rows to print
-    row erow;   // stores the size and characters of a single row to print
+    row *erow;   // stores the size and characters of a single row to print
     struct termios orig_termios; 
 };
 
@@ -110,24 +111,51 @@ editor_open(const char *filename)
     char *line_ptr = NULL;
     size_t n = 0;
     ssize_t line_len;
-    
-    line_len = getline(&line_ptr, &n, fptr);
 
-    if(line_len != -1) {
+    attributes.erow = NULL;
+    attributes.numrows = 0;
+
+    while((line_len = getline(&line_ptr, &n, fptr)) != -1) {
         while((line_ptr[line_len - 1] == '\n') ||
               (line_ptr[line_len - 1] == '\r'))
             line_len--;
 
-        attributes.erow.size = line_len;
-        attributes.erow.chars = malloc(line_len + 1);
-        memcpy(attributes.erow.chars, line_ptr, line_len);
+        attributes.erow = realloc(attributes.erow, (attributes.numrows + 1) * sizeof(*attributes.erow));
 
-        attributes.erow.chars[line_len] = '\0';
+        attributes.erow[attributes.numrows].size = line_len;
+        attributes.erow[attributes.numrows].chars = malloc(line_len + 1);
+        memcpy(attributes.erow[attributes.numrows].chars, line_ptr, line_len);
 
-        attributes.numrows = 1;
+        attributes.numrows++;
+        free(line_ptr);
+        line_ptr = NULL;
+        n = 0;
     }
+
     free(line_ptr);
     fclose(fptr);
+
+    if(line_len == -1 && (errno == EINVAL || errno == ENOMEM)) {
+        die("getline");
+    }
+    
+    // line_len = getline(&line_ptr, &n, fptr);
+
+    // if(line_len != -1) {
+    //     while((line_ptr[line_len - 1] == '\n') ||
+    //           (line_ptr[line_len - 1] == '\r'))
+    //         line_len--;
+
+    //     attributes.erow.size = line_len;
+    //     attributes.erow.chars = malloc(line_len + 1);
+    //     memcpy(attributes.erow.chars, line_ptr, line_len);
+
+    //     attributes.erow.chars[line_len] = '\0';
+
+    //     attributes.numrows = 1;
+    // }
+    // free(line_ptr);
+    // fclose(fptr);
 }
 
 
@@ -192,10 +220,11 @@ draw_rows(struct abuf *ab)
                 append_buffer(ab, "~", 1);
             }
         } else {
-            /* this else-block will print the row */
-            int len = attributes.erow.size;
-            if(len > attributes.screencols) len = attributes.screencols;
-            append_buffer(ab, attributes.erow.chars, len);
+            for(int i = 0; i < attributes.numrows; i++) {
+                int len = attributes.erow[i].size;
+                if(len > attributes.screencols) len = attributes.screencols;
+                append_buffer(ab, attributes.erow[i].chars, len);
+            }
         }
 
         /* clear screen to right of the cursor */
