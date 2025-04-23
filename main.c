@@ -165,7 +165,7 @@ draw_rows(struct abuf *ab)
     for(y = 0; y < attributes.screenrows; y++) {
         /* this if-block centres the welcome message to be printed */
         if(y >= attributes.numrows) {
-            if(y == attributes.screenrows / 3) {
+            if(y == attributes.screenrows / 3 && attributes.numrows == 0) {
                 char welcome[60];
 
                 int welcome_len = snprintf(welcome, sizeof(welcome),
