@@ -15,19 +15,19 @@ enum editor_key {
     ARROW_RIGHT
 };
 
-#define WELCOME_MSG "PlaceHolder"
+#define WELCOME_MSG "Termite"
 
 
-typedef struct erow {
+typedef struct {
     int size;
     char *chars;
-} erow;
+} row;
 
 struct editor_attributes{
     int cx, cy;
     int screenrows, screencols;
     int numrows;
-    erow row;
+    row erow;
     struct termios orig_termios; 
 };
 
@@ -111,11 +111,11 @@ editor_open(const char *filename)
               (line_ptr[line_len - 1] == '\r'))
             line_len--;
 
-        attributes.row.size = line_len;
-        attributes.row.chars = malloc(line_len);
-        memcpy(attributes.row.chars, line_ptr, line_len);
+        attributes.erow.size = line_len;
+        attributes.erow.chars = malloc(line_len + 1);
+        memcpy(attributes.erow.chars, line_ptr, line_len);
 
-        attributes.row.chars[line_len] = '\0';
+        attributes.erow.chars[line_len] = '\0';
 
         attributes.numrows = 1;
     }
@@ -185,9 +185,9 @@ draw_rows(struct abuf *ab)
                 append_buffer(ab, "~", 1);
             }
         } else {
-            int len = attributes.row.size;
+            int len = attributes.erow.size;
             if(len > attributes.screencols) len = attributes.screencols;
-            append_buffer(ab, attributes.row.chars, len);
+            append_buffer(ab, attributes.erow.chars, len);
         }
 
         append_buffer(ab, "\x1b[K", 3);
