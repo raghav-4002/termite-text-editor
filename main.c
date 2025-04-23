@@ -138,24 +138,7 @@ editor_open(const char *filename)
     if(line_len == -1 && (errno == EINVAL || errno == ENOMEM)) {
         die("getline");
     }
-    
-    // line_len = getline(&line_ptr, &n, fptr);
 
-    // if(line_len != -1) {
-    //     while((line_ptr[line_len - 1] == '\n') ||
-    //           (line_ptr[line_len - 1] == '\r'))
-    //         line_len--;
-
-    //     attributes.erow.size = line_len;
-    //     attributes.erow.chars = malloc(line_len + 1);
-    //     memcpy(attributes.erow.chars, line_ptr, line_len);
-
-    //     attributes.erow.chars[line_len] = '\0';
-
-    //     attributes.numrows = 1;
-    // }
-    // free(line_ptr);
-    // fclose(fptr);
 }
 
 
