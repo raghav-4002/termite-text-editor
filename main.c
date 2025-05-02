@@ -119,12 +119,10 @@ editor_open(const char *filename)
         while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
             line_len--;
 
-        attributes.erow[attributes.numrows].size = line_len + 2;
-        attributes.erow[attributes.numrows].chars = malloc((line_len + 2) * 
-                                                          sizeof(char));
+        attributes.erow[attributes.numrows].size = line_len;
+        attributes.erow[attributes.numrows].chars = malloc(line_len);
+
         memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
-        attributes.erow[attributes.numrows].chars[line_len] = '\r';
-        attributes.erow[attributes.numrows].chars[line_len + 1] = '\n';
 
         attributes.numrows++;
     }
@@ -193,11 +191,9 @@ draw_rows(struct abuf *ab)
                 append_buffer(ab, "~", 1);
             }
         } else {
-            for(int i = 0; i < attributes.numrows; i++) {
-                int len = attributes.erow[i].size;
-                if(len > attributes.screencols) len = attributes.screencols;
-                append_buffer(ab, attributes.erow[i].chars, len);
-            }
+            int len = attributes.erow[y].size;
+            if(len > attributes.screencols) len = attributes.screencols;
+            append_buffer(ab, attributes.erow[y].chars, len);
         }
 
         /* clear screen to right of the cursor */
