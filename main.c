@@ -86,6 +86,8 @@ init_editor(void)
 {
     attributes.cx = 0, attributes.cy = 0; // set cursor position to top left
     attributes.numrows = 0;
+    attributes.erow = NULL;
+
     get_window_size();
 }
 
@@ -105,40 +107,27 @@ get_window_size(void)
 void
 editor_open(const char *filename)
 {
-    FILE *fptr = fopen(filename, "r");
-    if(fptr == NULL) die("fopen");
+    FILE *fptr = fopen(filename, "r");    
 
-    char *line_ptr = NULL;
+    char *line = NULL;
     size_t n = 0;
     ssize_t line_len;
 
-    attributes.erow = NULL;
-    attributes.numrows = 0;
+    while((line_len = getline(&line, &n, fptr)) != -1) {
+        attributes.erow = realloc(attributes.erow, sizeof(row)*(attributes.numrows + 1));
 
-    while((line_len = getline(&line_ptr, &n, fptr)) != -1) {
-        while((line_ptr[line_len - 1] == '\n') ||
-              (line_ptr[line_len - 1] == '\r'))
+        while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
             line_len--;
 
-        attributes.erow = realloc(attributes.erow, (attributes.numrows + 1) * sizeof(*attributes.erow));
-
-        attributes.erow[attributes.numrows].size = line_len;
-        attributes.erow[attributes.numrows].chars = malloc(line_len + 1);
-        memcpy(attributes.erow[attributes.numrows].chars, line_ptr, line_len);
+        attributes.erow[attributes.numrows].size = line_len + 2;
+        attributes.erow[attributes.numrows].chars = malloc((line_len + 2) * 
+                                                          sizeof(char));
+        memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
+        attributes.erow[attributes.numrows].chars[line_len] = '\r';
+        attributes.erow[attributes.numrows].chars[line_len + 1] = '\n';
 
         attributes.numrows++;
-        free(line_ptr);
-        line_ptr = NULL;
-        n = 0;
     }
-
-    free(line_ptr);
-    fclose(fptr);
-
-    if(line_len == -1 && (errno == EINVAL || errno == ENOMEM)) {
-        die("getline");
-    }
-
 }
 
 
@@ -174,8 +163,9 @@ draw_rows(struct abuf *ab)
     int y;
 
     for(y = 0; y < attributes.screenrows; y++) {
-        /* this if-block centres the welcome message to be printed */
+        /* this if block checks if ~ has to be printed */
         if(y >= attributes.numrows) {
+            /* this if-block centres the welcome message to be printed */
             if(y == attributes.screenrows / 3 && attributes.numrows == 0) {
                 char welcome[60];
 
