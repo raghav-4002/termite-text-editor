@@ -51,6 +51,7 @@ struct abuf {
 void init_editor(void);
 void get_window_size(void);
 void editor_open(const char *filename);
+void editor_read_lines(char *line, ssize_t line_len);
 void refresh_screen(void);
 void draw_rows(struct abuf *ab);
 void process_input(void);
@@ -114,18 +115,26 @@ editor_open(const char *filename)
     ssize_t line_len;
 
     while((line_len = getline(&line, &n, fptr)) != -1) {
-        attributes.erow = realloc(attributes.erow, sizeof(row)*(attributes.numrows + 1));
-
-        while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
-            line_len--;
-
-        attributes.erow[attributes.numrows].size = line_len;
-        attributes.erow[attributes.numrows].chars = malloc(line_len);
-
-        memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
-
-        attributes.numrows++;
+        editor_read_lines(line, line_len);
     }
+    if(line_len == -1 && (errno == EINVAL || errno == ENOMEM)) die("getline");
+}
+
+
+void
+editor_read_lines(char *line, ssize_t line_len)
+{
+    attributes.erow = realloc(attributes.erow, sizeof(row) * (attributes.numrows + 1));
+
+    while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
+        line_len--;
+
+    attributes.erow[attributes.numrows].size = line_len;
+    attributes.erow[attributes.numrows].chars = malloc(line_len);
+
+    memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
+
+    attributes.numrows++;
 }
 
 
