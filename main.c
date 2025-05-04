@@ -54,6 +54,7 @@ void get_window_size(void);
 void editor_open(const char *filename);
 void editor_read_lines(char *line, ssize_t line_len);
 void refresh_screen(void);
+void editor_scroll(void);
 void draw_rows(struct abuf *ab);
 void process_input(void);
 int read_input(void);
@@ -143,6 +144,8 @@ editor_read_lines(char *line, ssize_t line_len)
 void
 refresh_screen(void)
 {
+    editor_scroll();
+
     struct abuf ab = ABUF_INIT;
 
     /* hide cursor */
@@ -163,6 +166,19 @@ refresh_screen(void)
     write(STDOUT_FILENO, ab.s, ab.len);
 
     free(ab.s);
+}
+
+
+void
+editor_scroll(void)
+{
+    if(attributes.cy == 0 && attributes.rowoff != 0) {
+        attributes.rowoff--;
+    }
+
+    if(attributes.cy == attributes.screenrows -1 && attributes.screenrows + attributes.rowoff < attributes.numrows) {
+        attributes.rowoff++;
+    }
 }
 
 
