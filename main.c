@@ -32,6 +32,7 @@ typedef struct {
 struct editor_attributes{
     int cx, cy;
     int screenrows, screencols;
+    int rowoff;
     int numrows; // stores the total number of rows to print
     row *erow;   // stores the size and characters of a single row to print
     struct termios orig_termios; 
@@ -86,6 +87,7 @@ void
 init_editor(void)
 {
     attributes.cx = 0, attributes.cy = 0; // set cursor position to top left
+    attributes.rowoff = 0;
     attributes.numrows = 0;
     attributes.erow = NULL;
 
@@ -170,8 +172,8 @@ draw_rows(struct abuf *ab)
     int y;
 
     for(y = 0; y < attributes.screenrows; y++) {
-        /* this if block checks if ~ has to be printed */
-        if(y >= attributes.numrows) {
+        int filerow = y + attributes.rowoff;
+        if(filerow >= attributes.numrows) {
             /* this if-block centres the welcome message to be printed */
             if(y == attributes.screenrows / 3 && attributes.numrows == 0) {
                 char welcome[60];
@@ -200,9 +202,9 @@ draw_rows(struct abuf *ab)
                 append_buffer(ab, "~", 1);
             }
         } else {
-            int len = attributes.erow[y].size;
+            int len = attributes.erow[filerow].size;
             if(len > attributes.screencols) len = attributes.screencols;
-            append_buffer(ab, attributes.erow[y].chars, len);
+            append_buffer(ab, attributes.erow[filerow].chars, len);
         }
 
         /* clear screen to right of the cursor */
