@@ -1,3 +1,4 @@
+/* include feature-test macros */
 #define _BSD_SOURCE
 #define _DEFAULT_SOURCE
 #define _GNU_SOURCE
@@ -12,35 +13,46 @@
 #include <errno.h>
 
 
-#define CTRL_KEY(k) ((k) & 0x1f)
+#define WELCOME_MSG "Termite"
+
+#define CTRL_KEY(k) ((k) & 0x1f)    /* this is equivalent to CTRL + k*/
 
 enum editor_key {
     ARROW_UP = 1000,
-    ARROW_DOWN,
-    ARROW_LEFT,
-    ARROW_RIGHT
+    ARROW_DOWN = 1001,
+    ARROW_LEFT = 1002,
+    ARROW_RIGHT = 1003,
 };
 
-#define WELCOME_MSG "Termite"
 
-
+/* struct to store size and characters of a row while drawing */
 typedef struct {
     int size;
     char *chars;
 } row;
 
+/* struct to store various terminal attributes */
 struct editor_attributes{
-    int cx, cy;
-    int screenrows, screencols;
-    int rowoff;
-    int numrows; // stores the total number of rows to print
-    row *erow;   // stores the size and characters of a single row to print
-    struct termios orig_termios; 
+    int cx, cy;                  /* cursor position */
+    int screenrows, screencols;  /* length and width of the screen */
+    int rowoff;                  /* variable to manage scrolling */
+    int numrows;                 /* total number of rows of a file to print */
+    row *erow;                   /* pointer to array of 'row' structures */
+    struct termios orig_termios; /* stores the original terminal settings */
 };
 
 struct editor_attributes attributes;
 
 
+/*
+ * datatype 'abuf' and related functions 'append_buffer' and 'free_buffer'
+   are used to call the 'write' syscall inside the function 'refresh_screen'
+ 
+ * requesting system-calls repeatedly is expensive
+   thus the function 'append_buffer' will first create a 'list' of
+   requests to write and then call 'write' only once, writing all the
+   content at once.
+*/
 struct abuf {
     char *s;
     int len;
@@ -71,6 +83,8 @@ main(int argc, char *argv[])
 {
     enable_raw_mode();
     init_editor();
+
+    /* if a second argument is given */
     if(argc == 2) {
         editor_open(argv[1]);
     }
@@ -87,10 +101,10 @@ main(int argc, char *argv[])
 void
 init_editor(void)
 {
-    attributes.cx = 0, attributes.cy = 0; // set cursor position to top left
-    attributes.rowoff = 0;
-    attributes.numrows = 0;
-    attributes.erow = NULL;
+    attributes.cx = 0, attributes.cy = 0; /* set cursor position to top-left */
+    attributes.rowoff = 0;                /* row-offset variable to handle vertical scrolling */
+    attributes.numrows = 0;               /* number of rows of a file to print */
+    attributes.erow = NULL;               /* pointer to 'row' type structure */
 
     get_window_size();
 }
@@ -101,6 +115,7 @@ get_window_size(void)
 {
     struct winsize ws;
 
+    /* 'ioctl' (input-output control) syscall; used here to get window size */
     if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1) die("ioctl");
 
     attributes.screenrows = ws.ws_row;
@@ -113,13 +128,17 @@ editor_open(const char *filename)
 {
     FILE *fptr = fopen(filename, "r");    
 
-    char *line = NULL;
-    size_t n = 0;
-    ssize_t line_len;
+    if(!fptr) die(NULL);
 
+    char *line = NULL;  /* stores characters of a line */
+    size_t n = 0;       /* stores size of the array 'line' */
+    ssize_t line_len;   /* stores length of the line */
+
+    /* getline will return -1 if it encounters error or EOF */
     while((line_len = getline(&line, &n, fptr)) != -1) {
         editor_read_lines(line, line_len);
     }
+    /* don't throw error if EOF was reached */
     if(line_len == -1 && (errno == EINVAL || errno == ENOMEM)) die("getline");
 }
 
@@ -172,10 +191,12 @@ refresh_screen(void)
 void
 editor_scroll(void)
 {
+    /* to scroll vertically upwards */
     if(attributes.cy == 0 && attributes.rowoff != 0) {
         attributes.rowoff--;
     }
 
+    /* to scroll vertically downwards */
     if(attributes.cy == attributes.screenrows -1 && attributes.screenrows + attributes.rowoff < attributes.numrows) {
         attributes.rowoff++;
     }
