@@ -36,6 +36,7 @@ struct editor_attributes{
     int cx, cy;                  /* cursor position */
     int screenrows, screencols;  /* length and width of the screen */
     int rowoff;                  /* variable to manage scrolling */
+    int coloff;
     int numrows;                 /* total number of rows of a file to print */
     row *erow;                   /* pointer to array of 'row' structures */
     struct termios orig_termios; /* stores the original terminal settings */
@@ -104,6 +105,7 @@ init_editor(void)
     attributes.cx = 0, attributes.cy = 0; /* set cursor position to top-left */
     attributes.rowoff = 0;                /* row-offset variable to handle vertical scrolling */
     attributes.numrows = 0;               /* number of rows of a file to print */
+    attributes.coloff = 0 ;
     attributes.erow = NULL;               /* pointer to 'row' type structure */
 
     get_window_size();
@@ -200,6 +202,16 @@ editor_scroll(void)
     if(attributes.cy == attributes.screenrows -1 && attributes.screenrows + attributes.rowoff < attributes.numrows) {
         attributes.rowoff++;
     }
+
+    /* to scroll horizontally left */
+    if(attributes.cx == 0 && attributes.coloff != 0) {
+        attributes.coloff--;
+    }
+
+    /* to scroll horizontally right*/
+    if(attributes.cx == attributes.screencols - 1) {
+        attributes.coloff++;
+    }
 }
 
 
@@ -209,10 +221,12 @@ draw_rows(struct abuf *ab)
     int y;
 
     for(y = 0; y < attributes.screenrows; y++) {
+        /* filerow is the starting row to display */
         int filerow = y + attributes.rowoff;
+
         if(filerow >= attributes.numrows) {
-            /* this if-block centres the welcome message to be printed */
             if(y == attributes.screenrows / 3 && attributes.numrows == 0) {
+                /* if numrows = 0 => no content to print => print message and tildes only */
                 char welcome[60];
 
                 int welcome_len = snprintf(welcome, sizeof(welcome),
@@ -236,12 +250,15 @@ draw_rows(struct abuf *ab)
 
                 append_buffer(ab, welcome, welcome_len);
             } else {
+                /* draw tildes */
                 append_buffer(ab, "~", 1);
             }
         } else {
-            int len = attributes.erow[filerow].size;
+            /* write the contents of the file */
+            int len = attributes.erow[filerow].size - attributes.coloff;
             if(len > attributes.screencols) len = attributes.screencols;
-            append_buffer(ab, attributes.erow[filerow].chars, len);
+            if(len < 0) len = 0;
+            append_buffer(ab, &attributes.erow[filerow].chars[attributes.coloff], len);
         }
 
         /* clear screen to right of the cursor */
