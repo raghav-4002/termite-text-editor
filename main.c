@@ -24,6 +24,13 @@ enum editor_key {
     ARROW_RIGHT = 1003,
 };
 
+enum editor_scroll {
+    SCROLL_UP = 2000,
+    SCROLL_DOWN,
+    SCROLL_RIGTH,
+    SCROLL_LEFT,
+};
+
 
 /* struct to store size and characters of a row while drawing */
 typedef struct {
@@ -67,7 +74,7 @@ void get_window_size(void);
 void editor_open(const char *filename);
 void editor_read_lines(char *line, ssize_t line_len);
 void refresh_screen(void);
-void editor_scroll(void);
+void editor_scroll(int scroll_direction);
 void draw_rows(struct abuf *ab);
 void process_input(void);
 int read_input(void);
@@ -165,8 +172,6 @@ editor_read_lines(char *line, ssize_t line_len)
 void
 refresh_screen(void)
 {
-    editor_scroll();
-
     struct abuf ab = ABUF_INIT;
 
     /* hide cursor */
@@ -191,26 +196,24 @@ refresh_screen(void)
 
 
 void
-editor_scroll(void)
+editor_scroll(int scroll_direction)
 {
-    /* to scroll vertically upwards */
-    if(attributes.cy == 0 && attributes.rowoff != 0) {
-        attributes.rowoff--;
-    }
+    switch(scroll_direction) {
+        case SCROLL_UP:
+            if(attributes.rowoff != 0) attributes.rowoff--;
+            break;
 
-    /* to scroll vertically downwards */
-    if(attributes.cy == attributes.screenrows -1 && attributes.screenrows + attributes.rowoff < attributes.numrows) {
-        attributes.rowoff++;
-    }
+        case SCROLL_DOWN:
+            if(attributes.screenrows + attributes.rowoff < attributes.numrows) attributes.rowoff++;
+            break;
 
-    /* to scroll horizontally left */
-    if(attributes.cx == 0 && attributes.coloff != 0) {
-        attributes.coloff--;
-    }
+        case SCROLL_LEFT:
+            if(attributes.coloff != 0) attributes.coloff--;
+            break;
 
-    /* to scroll horizontally right*/
-    if(attributes.cx == attributes.screencols - 1) {
-        attributes.coloff++;
+        case SCROLL_RIGTH:
+            attributes.coloff++;
+            break;
     }
 }
 
@@ -323,24 +326,32 @@ move_cursor(int ch)
         case ARROW_UP:
             if(attributes.cy != 0) {
                 attributes.cy--;
+            } else {
+                editor_scroll(SCROLL_UP);
             }
             break;
 
         case ARROW_DOWN:
             if(attributes.cy != attributes.screenrows - 1) {
                 attributes.cy++;
+            } else {
+                editor_scroll(SCROLL_DOWN);
             }
             break;
 
         case ARROW_LEFT:
             if(attributes.cx != 0) {
                 attributes.cx--;
+            } else {
+                editor_scroll(SCROLL_LEFT);
             }
             break;
 
         case ARROW_RIGHT:
             if(attributes.cx != attributes.screencols - 1) {
                 attributes.cx++;
+            } else {
+                editor_scroll(SCROLL_RIGTH);
             }
             break;
     }
