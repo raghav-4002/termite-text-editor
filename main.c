@@ -328,7 +328,9 @@ void
 move_cursor(int ch)
 {
     /* pointer to the row struct where the cursor is at */
-    row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
+    // row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
+    row *cursor_row = attributes.cy >= attributes.numrows ? NULL : 
+                        &attributes.erow[attributes.cy + attributes.rowoff];
 
     switch(ch) {
         case ARROW_UP:
@@ -356,7 +358,7 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx + attributes.coloff < cursor_row->size) {
+            if(cursor_row && attributes.cx + attributes.coloff < cursor_row->size) {
                 if(attributes.cx < attributes.screencols - 1) {
                     attributes.cx++;
                 } else if(attributes.cx == attributes.screencols - 1) {
