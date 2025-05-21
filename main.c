@@ -213,7 +213,7 @@ editor_scroll(int scroll_direction)
 
         case SCROLL_RIGTH:
             attributes.coloff++;
-            break;
+            break; 
     }
 }
 
@@ -322,6 +322,9 @@ read_input(void)
 void
 move_cursor(int ch)
 {
+    /* pointer to the row struct where the cursor is at */
+    row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
+
     switch(ch) {
         case ARROW_UP:
             if(attributes.cy != 0) {
@@ -348,9 +351,9 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx != attributes.screencols - 1) {
+            if(attributes.cx < attributes.screencols - 1 && attributes.cx + attributes.coloff < cursor_row->size) {
                 attributes.cx++;
-            } else {
+            } else if(attributes.cx == attributes.screencols - 1 && attributes.cx + attributes.coloff < cursor_row->size) {
                 editor_scroll(SCROLL_RIGTH);
             }
             break;
