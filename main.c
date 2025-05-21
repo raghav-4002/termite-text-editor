@@ -331,7 +331,6 @@ move_cursor(int ch)
     row *cursor_row = attributes.cy >= attributes.numrows ? NULL : 
                         &attributes.erow[attributes.cy + attributes.rowoff];
 
-    if(attributes.cx > cursor_row->size + attributes.coloff) attributes.cx = cursor_row->size - attributes.coloff;
 
     switch(ch) {
         case ARROW_UP:
@@ -372,6 +371,13 @@ move_cursor(int ch)
             }
             break;
     }
+    
+    /* update pointer to row struct */
+    cursor_row = attributes.cy >= attributes.numrows ? NULL : 
+                        &attributes.erow[attributes.cy + attributes.rowoff];
+
+    /* cursor snapping */
+    if(attributes.cx > cursor_row->size - attributes.coloff) attributes.cx = cursor_row->size - attributes.coloff;
 }
 
 
