@@ -358,6 +358,13 @@ move_cursor(int ch)
             else if(attributes.coloff != 0){
                 editor_scroll(SCROLL_LEFT);
             }
+            else if(attributes.cy > 0) {
+                /* move to the end of previous line */
+                attributes.cy--;
+                attributes.cx = attributes.erow[attributes.cy + attributes.rowoff].size;
+                attributes.coloff = attributes.erow[attributes.cy + attributes.rowoff].size - attributes.screencols + 1;
+                if(attributes.coloff < 0) attributes.coloff = 0;
+            }
             break;
 
         case ARROW_RIGHT:
@@ -377,7 +384,8 @@ move_cursor(int ch)
                         &attributes.erow[attributes.cy + attributes.rowoff];
 
     /* cursor snapping */
-    if(attributes.cx > cursor_row->size - attributes.coloff) attributes.cx = cursor_row->size - attributes.coloff;
+    if(cursor_row && attributes.cx > cursor_row->size - attributes.coloff)
+        attributes.cx = cursor_row->size - attributes.coloff;
 }
 
 
