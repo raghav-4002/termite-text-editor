@@ -27,7 +27,7 @@ enum editor_key {
 enum editor_scroll {
     SCROLL_UP = 2000,
     SCROLL_DOWN,
-    SCROLL_RIGTH,
+    SCROLL_RIGHT,
     SCROLL_LEFT,
 };
 
@@ -135,7 +135,7 @@ get_window_size(void)
 void
 editor_open(const char *filename)
 {
-    FILE *fptr = fopen(filename, "r");    
+    FILE *fptr = fopen(filename, "r");
 
     if(!fptr) die(NULL);
 
@@ -200,18 +200,18 @@ editor_scroll(int scroll_direction)
 {
     switch(scroll_direction) {
         case SCROLL_UP:
-            if(attributes.rowoff != 0) attributes.rowoff--;
+            attributes.rowoff--;
             break;
 
         case SCROLL_DOWN:
-            if(attributes.screenrows + attributes.rowoff < attributes.numrows) attributes.rowoff++;
+            attributes.rowoff++;
             break;
 
         case SCROLL_LEFT:
-            if(attributes.coloff != 0) attributes.coloff--;
+            attributes.coloff--;
             break;
 
-        case SCROLL_RIGTH:
+        case SCROLL_RIGHT:
             attributes.coloff++;
             break; 
     }
@@ -319,6 +319,11 @@ read_input(void)
 }
 
 
+/*
+ * This function moves cursor across the screen.
+ * It also has the logic to scroll, which is described in the 'else if'
+    construct of each 'switch' case.
+*/
 void
 move_cursor(int ch)
 {
@@ -329,7 +334,7 @@ move_cursor(int ch)
         case ARROW_UP:
             if(attributes.cy != 0) {
                 attributes.cy--;
-            } else {
+            } else if(attributes.rowoff != 0) {
                 editor_scroll(SCROLL_UP);
             }
             break;
@@ -337,7 +342,7 @@ move_cursor(int ch)
         case ARROW_DOWN:
             if(attributes.cy != attributes.screenrows - 1) {
                 attributes.cy++;
-            } else {
+            } else if(attributes.screenrows + attributes.rowoff < attributes.numrows){
                 editor_scroll(SCROLL_DOWN);
             }
             break;
@@ -345,16 +350,18 @@ move_cursor(int ch)
         case ARROW_LEFT:
             if(attributes.cx != 0) {
                 attributes.cx--;
-            } else {
+            } else if(attributes.coloff != 0){
                 editor_scroll(SCROLL_LEFT);
             }
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx < attributes.screencols - 1 && attributes.cx + attributes.coloff < cursor_row->size) {
-                attributes.cx++;
-            } else if(attributes.cx == attributes.screencols - 1 && attributes.cx + attributes.coloff < cursor_row->size) {
-                editor_scroll(SCROLL_RIGTH);
+            if(attributes.cx + attributes.coloff < cursor_row->size) {
+                if(attributes.cx < attributes.screencols - 1) {
+                    attributes.cx++;
+                } else if(attributes.cx == attributes.screencols - 1) {
+                    editor_scroll(SCROLL_RIGHT);
+                }
             }
             break;
     }
