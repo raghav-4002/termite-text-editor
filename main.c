@@ -328,15 +328,17 @@ void
 move_cursor(int ch)
 {
     /* pointer to the row struct where the cursor is at */
-    // row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
     row *cursor_row = attributes.cy >= attributes.numrows ? NULL : 
                         &attributes.erow[attributes.cy + attributes.rowoff];
+
+    if(attributes.cx > cursor_row->size + attributes.coloff) attributes.cx = cursor_row->size - attributes.coloff;
 
     switch(ch) {
         case ARROW_UP:
             if(attributes.cy != 0) {
                 attributes.cy--;
-            } else if(attributes.rowoff != 0) {
+            }
+            else if(attributes.rowoff != 0) {
                 editor_scroll(SCROLL_UP);
             }
             break;
@@ -344,7 +346,8 @@ move_cursor(int ch)
         case ARROW_DOWN:
             if(attributes.cy != attributes.screenrows - 1) {
                 attributes.cy++;
-            } else if(attributes.screenrows + attributes.rowoff < attributes.numrows){
+            }
+            else if(attributes.screenrows + attributes.rowoff < attributes.numrows){
                 editor_scroll(SCROLL_DOWN);
             }
             break;
@@ -352,7 +355,8 @@ move_cursor(int ch)
         case ARROW_LEFT:
             if(attributes.cx != 0) {
                 attributes.cx--;
-            } else if(attributes.coloff != 0){
+            }
+            else if(attributes.coloff != 0){
                 editor_scroll(SCROLL_LEFT);
             }
             break;
@@ -361,7 +365,8 @@ move_cursor(int ch)
             if(cursor_row && attributes.cx + attributes.coloff < cursor_row->size) {
                 if(attributes.cx < attributes.screencols - 1) {
                     attributes.cx++;
-                } else if(attributes.cx == attributes.screencols - 1) {
+                }
+                else if(attributes.cx == attributes.screencols - 1) {
                     editor_scroll(SCROLL_RIGHT);
                 }
             }
