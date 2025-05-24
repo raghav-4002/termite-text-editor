@@ -368,20 +368,16 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(cursor_row && attributes.cx + attributes.coloff < cursor_row->size) {
-                /* if there's some text and cursor is not at the end of the line */
-
+            if(cursor_row) {
                 if(attributes.cx < attributes.screencols - 1) {
-                    /* if cursor is not at the edge of screen, move cursor to right */
-                    attributes.cx++;
+                    if(attributes.cx + attributes.coloff == cursor_row->size) {
+                        //add logic for snapping to next line
+                    } else{
+                        attributes.cx++;
+                    }
                 }
                 else if(attributes.cx == attributes.screencols - 1) {
-                    /* if cursor is at edge of the screen, scroll the screen */
-                    editor_scroll(SCROLL_RIGHT);
-                }
-                else if(attributes.cx == cursor_row->size - attributes.coloff && attributes.cy < attributes.rowoff + attributes.screenrows) {
-                    /* if cursor is at the end of the line but not at the edge of screen, snap to next line */
-                    // to do
+                    attributes.coloff++;
                 }
             }
             break;
