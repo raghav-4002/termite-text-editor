@@ -196,29 +196,6 @@ refresh_screen(void)
 
 
 void
-editor_scroll(int scroll_direction)
-{
-    switch(scroll_direction) {
-        case SCROLL_UP:
-            attributes.rowoff--;
-            break;
-
-        case SCROLL_DOWN:
-            attributes.rowoff++;
-            break;
-
-        case SCROLL_LEFT:
-            attributes.coloff--;
-            break;
-
-        case SCROLL_RIGHT:
-            attributes.coloff++;
-            break; 
-    }
-}
-
-
-void
 draw_rows(struct abuf *ab)
 {
     int y;
@@ -329,9 +306,15 @@ move_cursor(int ch)
 {
     switch(ch) {
         case ARROW_UP:
-            if(attributes.cy + attributes.coloff > 0) {
+            if(attributes.cy > 0) {
+                /* move cursor up only when not at top of screen */
                 attributes.cy--;
             }
+            else if(attributes.rowoff) {
+                /* scroll up only when not at top of file */
+                attributes.rowoff--;
+            }
+
             break;
 
         case ARROW_DOWN:
@@ -341,8 +324,10 @@ move_cursor(int ch)
             }
             else if(attributes.cy + attributes.rowoff < attributes.numrows) {
                 /* scroll down only when not at bottom of file */
-                editor_scroll(SCROLL_DOWN);
+                attributes.rowoff++;
             }
+
+            break;
     }
 }
 
