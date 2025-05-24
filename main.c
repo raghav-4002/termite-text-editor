@@ -327,69 +327,23 @@ read_input(void)
 void
 move_cursor(int ch)
 {
-    /* pointer to the row struct where the cursor is at */
-    row *cursor_row = attributes.cy >= attributes.numrows ? NULL : 
-                        &attributes.erow[attributes.cy + attributes.rowoff];
-
-
     switch(ch) {
         case ARROW_UP:
-            if(attributes.cy != 0) {
+            if(attributes.cy + attributes.coloff > 0) {
                 attributes.cy--;
-            }
-            else if(attributes.rowoff != 0) {
-                editor_scroll(SCROLL_UP);
             }
             break;
 
         case ARROW_DOWN:
-            if(attributes.cy != attributes.screenrows - 1) {
+            if(attributes.cy + 1 < attributes.screenrows) {
+                /* move cursor down, only if not at bottom of screen */
                 attributes.cy++;
             }
-            else if(attributes.screenrows + attributes.rowoff < attributes.numrows){
+            else if(attributes.cy + attributes.rowoff < attributes.numrows) {
+                /* scroll down only when not at bottom of file */
                 editor_scroll(SCROLL_DOWN);
             }
-            break;
-
-        case ARROW_LEFT:
-            if(attributes.cx != 0) {
-                attributes.cx--;
-            }
-            else if(attributes.coloff != 0){
-                editor_scroll(SCROLL_LEFT);
-            }
-            else if(attributes.cy > 0) {
-                /* move to the end of previous line */
-                attributes.cy--;
-                attributes.cx = attributes.erow[attributes.cy + attributes.rowoff].size;
-                attributes.coloff = attributes.erow[attributes.cy + attributes.rowoff].size - attributes.screencols + 1;
-                if(attributes.coloff < 0) attributes.coloff = 0;
-            }
-            break;
-
-        case ARROW_RIGHT:
-            if(cursor_row) {
-                if(attributes.cx < attributes.screencols - 1) {
-                    if(attributes.cx + attributes.coloff == cursor_row->size) {
-                        //add logic for snapping to next line
-                    } else{
-                        attributes.cx++;
-                    }
-                }
-                else if(attributes.cx == attributes.screencols - 1) {
-                    attributes.coloff++;
-                }
-            }
-            break;
     }
-    
-    /* update pointer to row struct */
-    cursor_row = attributes.cy >= attributes.numrows ? NULL : 
-                        &attributes.erow[attributes.cy + attributes.rowoff];
-
-    /* cursor snapping */
-    if(cursor_row && attributes.cx > cursor_row->size - attributes.coloff)
-        attributes.cx = cursor_row->size - attributes.coloff;
 }
 
 
