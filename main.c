@@ -328,6 +328,30 @@ move_cursor(int ch)
             }
 
             break;
+
+        case ARROW_LEFT:
+            if(attributes.cx > 0) {
+                /* move cursor left only when not at the edge of the screen */
+                attributes.cx--;
+            }
+            else if(attributes.coloff) {
+                /* scroll left only when coloffset is not zero */
+                attributes.coloff--;
+            }
+
+            break;
+
+        case ARROW_RIGHT:
+            if(attributes.cx + 1 < attributes.screencols) {
+                /* move cursor right only if not at the right edge of the screen */
+                attributes.cx++;
+            }
+            else {
+                /* if at the right edge of the screen, just scroll right */
+                attributes.coloff++;
+            }
+
+            break;
     }
 }
 
