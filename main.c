@@ -298,12 +298,14 @@ read_input(void)
 
 /*
  * This function moves cursor across the screen.
- * It also has the logic to scroll, which is described in the 'else if'
-    construct of each 'switch' case.
+ * It also has the logic to scroll.
 */
 void
 move_cursor(int ch)
 {
+    /* stores the information of text row where the cursor is at */
+    row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
+
     switch(ch) {
         case ARROW_UP:
             if(attributes.cy > 0) {
@@ -342,13 +344,15 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx + 1 < attributes.screencols) {
-                /* move cursor right only if not at the right edge of the screen */
-                attributes.cx++;
-            }
-            else {
-                /* if at the right edge of the screen, just scroll right */
-                attributes.coloff++;
+            if(attributes.cx + 1 + attributes.coloff <= cursor_row->size) {
+                if(attributes.cx + 1 < attributes.screencols) {
+                    /* move cursor right only if not at the right edge of the screen */
+                    attributes.cx++;
+                }
+                else {
+                    /* if at the right edge of the screen, just scroll right */
+                    attributes.coloff++;
+                }
             }
 
             break;
