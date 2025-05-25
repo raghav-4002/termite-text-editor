@@ -304,7 +304,9 @@ void
 move_cursor(int ch)
 {
     /* stores the information of text row where the cursor is at */
-    row *cursor_row = &attributes.erow[attributes.cy + attributes.rowoff];
+    /* stores NULL if there's no text at the current row of cursor */
+    row *cursor_row = attributes.cy + attributes.rowoff >= attributes.numrows ?
+                      NULL : &attributes.erow[attributes.cy + attributes.rowoff];
 
     switch(ch) {
         case ARROW_UP:
@@ -344,7 +346,11 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(attributes.cx + 1 + attributes.coloff <= cursor_row->size) {
+            if(cursor_row && attributes.cx + 1 + attributes.coloff <= cursor_row->size) {
+                /* trigger Arrow right key only if current row of cursor has some text 
+                 * and cursor is not at the end of the text
+                 */
+
                 if(attributes.cx + 1 < attributes.screencols) {
                     /* move cursor right only if not at the right edge of the screen */
                     attributes.cx++;
