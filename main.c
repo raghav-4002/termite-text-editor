@@ -322,13 +322,20 @@ move_cursor(int ch)
             break;
 
         case ARROW_DOWN:
-            if(attributes.cy + 1 < attributes.screenrows) {
-                /* move cursor down, only if not at bottom of screen */
-                attributes.cy++;
-            }
-            else if(attributes.cy + attributes.rowoff < attributes.numrows) {
-                /* scroll down only when not at bottom of file */
-                attributes.rowoff++;
+            if(attributes.cy + attributes.rowoff < attributes.numrows) {
+                /*
+                 * trigger Arrow down key only if the cursor is not at 
+                 * the bottom of the file.
+                 */
+
+                if(attributes.cy + 1 < attributes.screenrows) {
+                    /* move cursor down, only if not at bottom of screen */
+                    attributes.cy++;
+                }
+                else {
+                    /* if the cursor is at the bottom of the screen, scroll down */
+                    attributes.rowoff++;
+                }
             }
 
             break;
@@ -347,7 +354,8 @@ move_cursor(int ch)
 
         case ARROW_RIGHT:
             if(cursor_row && attributes.cx + 1 + attributes.coloff <= cursor_row->size) {
-                /* trigger Arrow right key only if current row of cursor has some text 
+                /* 
+                 * trigger Arrow right key only if current row of cursor has some text 
                  * and cursor is not at the end of the text
                  */
 
