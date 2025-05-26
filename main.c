@@ -289,6 +289,25 @@ read_input(void)
 }
 
 
+void
+update_cursor_row(row **cursor_row)
+{
+    *cursor_row = (attributes.cy + attributes.rowoff >= attributes.numrows) ?
+                  NULL : &attributes.erow[attributes.cy + attributes.rowoff];
+}
+
+
+void
+snap_cursor_at_end(row *cursor_row)
+{
+    /* firstly adjust the column offset, depending on the size of row */
+        attributes.coloff = cursor_row->size > attributes.screencols ?
+                            cursor_row->size - attributes.screencols + 1:
+                            0;
+        attributes.cx = cursor_row->size - attributes.coloff;
+}
+
+
 /*
  * This function moves cursor across the screen.
  * It also has the logic to scroll.
@@ -296,10 +315,8 @@ read_input(void)
 void
 move_cursor(int ch)
 {
-    /* stores the information of text row where the cursor is at */
-    /* stores NULL if there's no text at the current row of cursor */
-    row *cursor_row = attributes.cy + attributes.rowoff >= attributes.numrows ?
-                      NULL : &attributes.erow[attributes.cy + attributes.rowoff];
+    row *cursor_row = NULL;
+    update_cursor_row(&cursor_row);
 
     switch(ch) {
         case ARROW_UP:
@@ -340,6 +357,12 @@ move_cursor(int ch)
                 /* scroll left only when coloffset is not zero */
                 attributes.coloff--;
             }
+            else if(attributes.cy + attributes.coloff > 0) {
+                /* move to the end of line of previous row */
+                attributes.cy--;
+                update_cursor_row(&cursor_row);
+                snap_cursor_at_end(cursor_row);
+            }
             break;
 
         case ARROW_RIGHT:
@@ -362,16 +385,11 @@ move_cursor(int ch)
     }
 
     /* update the cursor row */
-    cursor_row = attributes.cy + attributes.rowoff >= attributes.numrows ?
-                 NULL : &attributes.erow[attributes.cy + attributes.rowoff];
+    update_cursor_row(&cursor_row);
 
     /* snap cursor at the end of the row */
     if(attributes.cx + attributes.coloff > cursor_row->size) {
-        /* firstly adjust the column offset, depending on the size of row */
-        attributes.coloff = cursor_row->size > attributes.screencols ?
-                            cursor_row->size - attributes.screencols + 1:
-                            0;
-        attributes.cx = cursor_row->size - attributes.coloff;
+        snap_cursor_at_end(cursor_row);
     }
 }
 
