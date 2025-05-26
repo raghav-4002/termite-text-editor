@@ -393,7 +393,7 @@ move_cursor(int ch)
             break;
 
         case ARROW_RIGHT:
-            if(cursor_row && attributes.cx + 1 + attributes.coloff <= cursor_row->size) {
+            if(cursor_row && attributes.cx + attributes.coloff <= cursor_row->size) {
                 /* 
                  * trigger Arrow right key only if current row of cursor has some text 
                  * and cursor is not at the end of the text
@@ -403,9 +403,14 @@ move_cursor(int ch)
                     /* move cursor right only if not at the right edge of the screen */
                     attributes.cx++;
                 }
-                else {
+                else if(attributes.cx + 1 == attributes.screencols) {
                     /* if at the right edge of the screen, just scroll right */
                     attributes.coloff++;
+                }
+                if(attributes.cx + attributes.coloff == cursor_row->size + 1) {
+                    attributes.coloff = 0;
+                    attributes.cy++;
+                    attributes.cx = 0;
                 }
             }
             break;
