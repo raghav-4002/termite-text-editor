@@ -24,13 +24,6 @@ enum editor_key {
     ARROW_RIGHT = 1003,
 };
 
-enum editor_scroll {
-    SCROLL_UP = 2000,
-    SCROLL_DOWN,
-    SCROLL_RIGHT,
-    SCROLL_LEFT,
-};
-
 
 /* struct to store size and characters of a row while drawing */
 typedef struct {
@@ -318,14 +311,13 @@ move_cursor(int ch)
                 /* scroll up only when not at top of file */
                 attributes.rowoff--;
             }
-
             break;
 
         case ARROW_DOWN:
-            if(attributes.cy + attributes.rowoff < attributes.numrows) {
+            if(cursor_row) {
                 /*
-                 * trigger Arrow down key only if the cursor is not at 
-                 * the bottom of the file.
+                 * trigger Arrow down key only if the cursor is at
+                 * the row where text is present
                  */
 
                 if(attributes.cy + 1 < attributes.screenrows) {
@@ -337,7 +329,6 @@ move_cursor(int ch)
                     attributes.rowoff++;
                 }
             }
-
             break;
 
         case ARROW_LEFT:
@@ -349,7 +340,6 @@ move_cursor(int ch)
                 /* scroll left only when coloffset is not zero */
                 attributes.coloff--;
             }
-
             break;
 
         case ARROW_RIGHT:
@@ -368,8 +358,20 @@ move_cursor(int ch)
                     attributes.coloff++;
                 }
             }
-
             break;
+    }
+
+    /* update the cursor row */
+    cursor_row = attributes.cy + attributes.rowoff >= attributes.numrows ?
+                 NULL : &attributes.erow[attributes.cy + attributes.rowoff];
+
+    /* snap cursor at the end of the row */
+    if(attributes.cx + attributes.coloff > cursor_row->size) {
+        /* firstly adjust the column offset, depending on the size of row */
+        attributes.coloff = cursor_row->size > attributes.screencols ?
+                            cursor_row->size - attributes.screencols + 1:
+                            0;
+        attributes.cx = cursor_row->size - attributes.coloff;
     }
 }
 
