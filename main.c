@@ -15,7 +15,8 @@
 
 #define WELCOME_MSG "Termite"
 
-#define CTRL_KEY(k) ((k) & 0x1f)    /* this is equivalent to CTRL + k*/
+
+#define CTRL_KEY(k) ((k) & 0x1f)    /* this is equivalent to CTRL + k */
 
 enum editor_key {
     ARROW_UP = 1000,
@@ -25,11 +26,12 @@ enum editor_key {
 };
 
 
-/* struct to store size and characters of a row while drawing */
+/* struct to store size and characters of a row of a file while printing content */
 typedef struct {
     int size;
     char *chars;
 } row;
+
 
 /* struct to store various terminal attributes */
 struct editor_attributes{
@@ -43,6 +45,58 @@ struct editor_attributes{
 };
 
 struct editor_attributes attributes;
+
+
+/*
+ * Prints error, restores terminal settings and exits program
+ */
+void
+die(const char *s)
+{
+    /* clear screen */
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    /* reposition cursor to top */
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    perror(s);  /* prints the error msg */
+    exit(1);
+}
+
+
+void
+disable_raw_mode(void)
+{
+    /* restore original terminal attributes */
+    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &attributes.orig_termios) == -1)
+        die("tcsetattr");
+}
+
+
+/*
+ * This function disables cannonical terminal mode of input. By default, terminal emulators are designed to only accept
+   data if 'enter' key is pressed.
+ * To make a text editor, we need to disable this feature so that we can have more finer control over the terminal
+ */
+void
+enable_raw_mode(void)
+{
+    /* get current terminal attributes */
+    if(tcgetattr(STDIN_FILENO, &attributes.orig_termios) == -1) die("tcgetattr");
+    atexit(disable_raw_mode);
+
+    struct termios raw = attributes.orig_termios;
+
+    /* enable raw mode */
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN | CS8);
+	raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
+	raw.c_oflag &= ~(OPOST);
+	raw.c_cflag |= (CS8);
+
+
+    /* set the updated terminal attributes */
+    if(tcsetattr(STDIN_FILENO, TCSANOW, &raw) == -1)
+        die("tcsetattr");
+}
 
 
 /*
@@ -61,54 +115,23 @@ struct abuf {
 
 #define ABUF_INIT {NULL, 0}
 
-
-void init_editor(void);
-void get_window_size(void);
-void editor_open(const char *filename);
-void editor_read_lines(char *line, ssize_t line_len);
-void refresh_screen(void);
-void editor_scroll(int scroll_direction);
-void draw_rows(struct abuf *ab);
-void process_input(void);
-int read_input(void);
-void move_cursor(int ch);
-void append_buffer(struct abuf *ab, const char *s, int len);
-void free_buffer(struct abuf *ab);
-void enable_raw_mode(void);
-void disable_raw_mode(void);
-void die(const char *s);
-
-
-int
-main(int argc, char *argv[])
+void
+append_buffer(struct abuf *ab, const char *s, int len)
 {
-    enable_raw_mode();
-    init_editor();
+    char *new = realloc(ab->s, ab->len + len);
+    if(new == NULL) die("realloc");
 
-    /* if a second argument is given */
-    if(argc == 2) {
-        editor_open(argv[1]);
-    }
+    memcpy(&new[ab->len], s, len);
 
-    while(1) {
-        refresh_screen();
-        process_input();
-    }
-
-    return 0;
+    ab->s = new;
+    ab->len = ab->len + len;
 }
 
 
 void
-init_editor(void)
+free_buffer(struct abuf *ab)
 {
-    attributes.cx = 0, attributes.cy = 0; /* set cursor position to top-left */
-    attributes.rowoff = 0;                /* row-offset variable to handle vertical scrolling */
-    attributes.numrows = 0;               /* number of rows of a file to print */
-    attributes.coloff = 0 ;
-    attributes.erow = NULL;               /* pointer to 'row' type structure */
-
-    get_window_size();
+    free(ab->s);
 }
 
 
@@ -125,6 +148,43 @@ get_window_size(void)
 }
 
 
+void
+init_editor(void)
+{
+    attributes.cx = 0, attributes.cy = 0; /* set cursor position to top-left */
+    attributes.rowoff = 0;                /* row-offset variable to handle vertical scrolling */
+    attributes.numrows = 0;               /* number of rows of a file to print */
+    attributes.coloff = 0 ;
+    attributes.erow = NULL;               /* pointer to 'row' type structure */
+
+    get_window_size();
+}
+
+
+/*
+ * Stores size and characters of a single line of file in array of 'row' type struct.
+ * Does so by allocating memory.
+*/
+void
+editor_read_lines(char *line, ssize_t line_len)
+{
+    attributes.erow = realloc(attributes.erow, sizeof(row) * (attributes.numrows + 1));
+
+    while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
+        line_len--;
+
+    attributes.erow[attributes.numrows].size = line_len;
+    attributes.erow[attributes.numrows].chars = malloc(line_len);
+
+    memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
+
+    attributes.numrows++;
+}
+
+
+/*
+ * Reads and stores the content of a file.
+*/
 void
 editor_open(const char *filename)
 {
@@ -145,49 +205,10 @@ editor_open(const char *filename)
 }
 
 
-void
-editor_read_lines(char *line, ssize_t line_len)
-{
-    attributes.erow = realloc(attributes.erow, sizeof(row) * (attributes.numrows + 1));
-
-    while(line[line_len - 1] == '\n' || line[line_len - 1] == '\r')
-        line_len--;
-
-    attributes.erow[attributes.numrows].size = line_len;
-    attributes.erow[attributes.numrows].chars = malloc(line_len);
-
-    memcpy(attributes.erow[attributes.numrows].chars, line, line_len);
-
-    attributes.numrows++;
-}
-
-
-void
-refresh_screen(void)
-{
-    struct abuf ab = ABUF_INIT;
-
-    /* hide cursor */
-    append_buffer(&ab, "\x1b[?25l", 6);
-    /* repostion cursor to the top */
-    append_buffer(&ab, "\x1b[H", 3);
-
-    draw_rows(&ab);
-
-    /* reposition cursor based on user input */
-    char buf[32];
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", attributes.cy + 1, attributes.cx + 1);
-    append_buffer(&ab, buf, strlen(buf));
-
-    /* unhide the cursor */
-    append_buffer(&ab, "\x1b[?25h", 6);
-
-    write(STDOUT_FILENO, ab.s, ab.len);
-
-    free(ab.s);
-}
-
-
+/*
+ * Redraws the whole frame, printing all the lines of a file,
+ * on the basis of updated parameters. Also prints the message.
+*/
 void
 draw_rows(struct abuf *ab)
 {
@@ -245,26 +266,32 @@ draw_rows(struct abuf *ab)
 }
 
 
+/*
+ * Clears the whole screen, calls `draw_rows` function to draw rows.
+*/
 void
-process_input(void)
+refresh_screen(void)
 {
-    int ch;
+    struct abuf ab = ABUF_INIT;
 
-    if((ch = read_input()) == -1) die("read_input");
+    /* hide cursor */
+    append_buffer(&ab, "\x1b[?25l", 6);
+    /* repostion cursor to the top */
+    append_buffer(&ab, "\x1b[H", 3);
 
-    switch(ch) {
-        case CTRL_KEY('q'): case '\x1b':
-            write(STDOUT_FILENO, "\x1b[2J", 4);
-            write(STDOUT_FILENO, "\x1b[H", 3);
+    draw_rows(&ab);
 
-            exit(0);
-            break;
+    /* reposition cursor based on user input */
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", attributes.cy + 1, attributes.cx + 1);
+    append_buffer(&ab, buf, strlen(buf));
 
-        case ARROW_UP: case ARROW_DOWN: case ARROW_RIGHT: case ARROW_LEFT:
-            move_cursor(ch);
-            break;
-    }
+    /* unhide the cursor */
+    append_buffer(&ab, "\x1b[?25h", 6);
 
+    write(STDOUT_FILENO, ab.s, ab.len);
+
+    free(ab.s);
 }
 
 
@@ -387,77 +414,60 @@ move_cursor(int ch)
     /* update the cursor row */
     update_cursor_row(&cursor_row);
 
-    /* snap cursor at the end of the row */
-    if(attributes.cx + attributes.coloff > cursor_row->size) {
+    /* snap cursor at the end of the row; only if cursor lands on row with some text */
+    if(cursor_row && attributes.cx + attributes.coloff > cursor_row->size) {
         snap_cursor_at_end(cursor_row);
+    }
+
+    /* adjustment for empty row */
+    if(!cursor_row) {
+        attributes.coloff = 0;
+        attributes.cx = 0;
     }
 }
 
 
-void
-append_buffer(struct abuf *ab, const char *s, int len)
-{
-    char *new = realloc(ab->s, ab->len + len);
-    if(new == NULL) die("realloc");
-
-    memcpy(&new[ab->len], s, len);
-
-    ab->s = new;
-    ab->len = ab->len + len;
-}
-
-
-void
-free_buffer(struct abuf *ab)
-{
-    free(ab->s);
-}
-
-
 /*
- * This function disables cannonical terminal mode of input. By default, terminal emulators are designed to only accept
-   data if 'enter' key is pressed.
- * To make a text editor, we need to disable this feature so that we can have more finer control over the terminal
- */
+ * Proccesses the read input via `read_input` function.
+*/
 void
-enable_raw_mode(void)
+process_input(void)
 {
-    /* get current terminal attributes */
-    if(tcgetattr(STDIN_FILENO, &attributes.orig_termios) == -1) die("tcgetattr");
-    atexit(disable_raw_mode);
+    int ch;
 
-    struct termios raw = attributes.orig_termios;
+    if((ch = read_input()) == -1) die("read_input");
 
-    /* enable raw mode */
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN | CS8);
-	raw.c_iflag &= ~(IXON | ICRNL | BRKINT | INPCK | ISTRIP);
-	raw.c_oflag &= ~(OPOST);
-	raw.c_cflag |= (CS8);
+    switch(ch) {
+        case CTRL_KEY('q'): case '\x1b':
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            write(STDOUT_FILENO, "\x1b[H", 3);
 
+            exit(0);
+            break;
 
-    /* set the updated terminal attributes */
-    if(tcsetattr(STDIN_FILENO, TCSANOW, &raw) == -1)
-        die("tcsetattr");
+        case ARROW_UP: case ARROW_DOWN: case ARROW_RIGHT: case ARROW_LEFT:
+            move_cursor(ch);
+            break;
+    }
+
 }
 
 
-void
-disable_raw_mode(void)
+int
+main(int argc, char *argv[])
 {
-    /* restore original terminal attributes */
-    if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &attributes.orig_termios) == -1)
-        die("tcsetattr");
-}
+    enable_raw_mode();
+    init_editor();
 
+    /* if a second argument is given */
+    if(argc == 2) {
+        editor_open(argv[1]);
+    }
 
-void
-die(const char *s)
-{
-    /* clear screen */
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    /* reposition cursor to top */
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    while(1) {
+        refresh_screen();
+        process_input();
+    }
 
-    perror(s);  /* prints the error msg */
-    exit(1);
+    return 0;
 }
